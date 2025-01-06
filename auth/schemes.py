@@ -51,15 +51,20 @@ class UserRegister(UserBase):
     def check_password(self) -> Self:
         if self.password != self.confirm_password:
             raise ValueError("Пароли не совпадают")
-        self.password = hash_password(self.password)  # хешируем пароль до сохранения в базе данных
+        self.password = hash_password(
+            self.password
+        )  # хешируем пароль до сохранения в базе данных
         return self
-    
+
+
 class UserAddDB(UserBase):
     password: bytes = Field(min_length=5, description="Пароль в формате HASH-строки")
 
 
 class UserAuth(EmailModel):
-    password: str = Field(min_length=5, max_length=50, description="Пароль, от 5 до 50 знаков")
+    password: str = Field(
+        min_length=5, max_length=50, description="Пароль, от 5 до 50 знаков"
+    )
 
 
 class RoleModel(BaseModel):
@@ -79,5 +84,3 @@ class UserInfo(UserBase):
     @computed_field
     def role_id(self) -> int:
         return self.role.id
-
-UserInfo.model_validate()
