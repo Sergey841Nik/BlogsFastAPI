@@ -12,7 +12,7 @@ DB_PATH = BASE_DIR / "db_sql.db"
 
 class DataBaseConfig(BaseModel):
     url: str = f"sqlite+aiosqlite:///{DB_PATH}"
-    echo: bool = False
+    echo: bool = True
 
 class AuthJWT(BaseModel):
 
