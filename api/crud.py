@@ -11,14 +11,15 @@ logger = getLogger(__name__)
 
 async def add_tags_to_bd(session: AsyncSession, tag_names: list[str]) -> list[int]:
     """
-    Метод для добавления тегов в базу данных.
-    Принимает список строк (тегов), проверяет, существуют ли они в базе данных,
-    добавляет новые и возвращает список ID тегов.
-
-    :param session: Сессия базы данных.
-    :param tag_names: Список тегов в нижнем регистре.
-    :return: Список ID тегов.
-    """
+   Метод для добавления тегов в базу данных.
+   Принимает список строк (тегов), проверяет, существуют ли они в базе данных,
+   добавляет новые и возвращает список ID тегов.
+   Args:
+       session (AsyncSession): Сессия базы данных.
+       tag_names (list[str]): Список тегов в нижнем регистре.
+   Returns:
+       list[int]: Список ID тегов.
+   """
     tag_ids = []
     for tag_name in tag_names:
         tag_name = tag_name.lower()  # Приводим тег к нижнему регистру
@@ -60,13 +61,13 @@ async def add_blog_to_bd(session: AsyncSession, values: BaseModel):
 
 async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict]) -> None:
     """
-    Метод для массового добавления связок блогов и тегов в базу данных.
-    Принимает список словарей с blog_id и tag_id, добавляет соответствующие записи.
-
-    :param session: Сессия базы данных.
-    :param blog_tag_pairs: Список словарей с ключами 'blog_id' и 'tag_id'.
-    :return: None
-    """
+   Функция добавляет связки блогов и тегов в базу данных.
+   Args:
+       session (AsyncSession): Объект сессии базы данных.
+       blog_tag_pairs (list[dict]): Список словарей, где каждый словарь содержит пару blog_id и tag_id.
+   Returns:
+       None
+   """
     # Сначала создаем все объекты BlogTag
     blog_tag_instances = []
     for pair in blog_tag_pairs:
@@ -90,3 +91,4 @@ async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict])
             raise e
     else:
         logger.warning("Нет валидных данных для добавления в таблицу blog_tags.")
+

@@ -41,6 +41,6 @@ def decoded_jwt(
         algorithm: str = settings.auth_jwt.algorithms,
 ):
     logger.info("token: %s" % token)
-    logger.info("algorithm: %s" % algorithm)
+    
     decoded = jwt.decode(token, public_key, algorithms=[algorithm])
     return decoded
