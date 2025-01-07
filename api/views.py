@@ -5,11 +5,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi.responses import JSONResponse
 
+from api.dependencies import get_current_user_optional
 from auth.dependencies import get_current_user
 from core.models.base import User
 from core.models.db_helper import db_helper
-from .shemes import BlogCreateSchemaBase, BlogCreateSchemaAdd
-from .crud import add_blog_to_bd, add_tags_to_bd, add_blog_tags_to_bd
+from .schemes import (
+    BlogCreateSchemaBase,
+    BlogCreateSchemaAdd,
+    BlogFullResponse,
+    BlogNotFind,
+)
+from .crud import (
+    add_blog_to_bd,
+    add_tags_to_bd,
+    add_blog_tags_to_bd,
+    get_full_blog_info,
+)
 
 router = APIRouter(prefix="/api", tags=["API"])
 
@@ -56,3 +67,23 @@ async def add_blog(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при добавлении блога. ERROR: {e}",
         )
+
+
+async def get_blog_info(
+    blog_id: int,
+    session: AsyncSession = Depends(db_helper.session_dependency),
+    user_data: dict | None = Depends(get_current_user_optional),
+):
+    author_id = user_data["sub"] if user_data else None
+    return await get_full_blog_info(
+        session=session, blog_id=blog_id, author_id=author_id
+    )
+
+
+@router.get("/get_blog/{blog_id}", summary="Получить информацию по блогу")
+async def get_blog_endpoint(
+    blog_id: int, 
+    blog_info: BlogFullResponse | BlogNotFind = Depends(get_blog_info)
+) -> BlogFullResponse | BlogNotFind:
+    logger.info("Blog_info %s" % blog_info.tags[0].name)
+    return blog_info

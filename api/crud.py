@@ -3,6 +3,7 @@ from logging import getLogger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import selectinload, joinedload
 from pydantic import BaseModel
 
 from core.models.base import Blog, Tag, BlogTag
@@ -92,3 +93,38 @@ async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict])
     else:
         logger.warning("Нет валидных данных для добавления в таблицу blog_tags.")
 
+
+async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int | None = None):
+    """
+    Метод для получения полной информации о блоге, включая данные об авторе и тегах.
+    Для опубликованных блогов доступ к информации открыт всем пользователям.
+    Для черновиков доступ открыт только автору блога.
+    """
+    query = (
+        select(Blog)
+        .options(
+            joinedload(Blog.user),  # Подгружаем данные о пользователе (авторе)
+            selectinload(Blog.tags)  # Подгружаем связанные теги
+        )
+        .filter_by(id=blog_id)
+    )
+
+    # Выполняем запрос
+    result = await session.execute(query)
+    blog = result.scalar_one_or_none()
+    
+    logger.info("Blog %s" % blog)
+
+    if not blog:
+        return {
+            'message': f"Блог с ID {blog_id} не найден или у вас нет прав на его просмотр.",
+            'status': 'error'
+        }
+
+    if blog.status == 'draft' and (author_id != blog.author):
+        return {
+            'message': "Этот блог находится в статусе черновика, и доступ к нему имеют только авторы.",
+            'status': 'error'
+        }
+
+    return blog

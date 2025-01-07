@@ -20,7 +20,7 @@ async def get_current_user_optional(
     token: str | None = Depends(get_token_optional),
 ) -> dict | None:
     try:
-        payload = decoded_jwt(token)
+        payload = decoded_jwt(token) # type: ignore
     except InvalidTokenError:
         return None
 
