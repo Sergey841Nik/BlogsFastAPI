@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from auth.views import router as auth_router
+from api.views import router as api_router
 
 logger = getLogger()
 FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
@@ -16,6 +17,7 @@ basicConfig(level=INFO, format=FORMAT, handlers=[stream_handler])
 
 app = FastAPI()
 app.include_router(auth_router)
+app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,

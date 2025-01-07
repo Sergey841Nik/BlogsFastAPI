@@ -28,15 +28,15 @@ async def find_one_or_none_users(session: AsyncSession, filters: BaseModel):
 
 
 async def add_users(session: AsyncSession, values: BaseModel):
-        # Добавить одну запись
-        values_dict = values.model_dump(exclude_unset=True)
+    # Добавить одну запись
+    values_dict = values.model_dump(exclude_unset=True)
 
-        logger.info("Добавление записи с параметрами: %s" % values_dict["password"])
+    logger.info("Добавление записи с параметрами: %s" % values_dict["password"])
 
-        new_user = User(**values_dict)
-        session.add(new_user)
-    
-        await session.commit()
-        logger.info(f"Запись успешно добавлена.")
-        return new_user
+    new_user = User(**values_dict)
+    session.add(new_user)
+
+    await session.commit()
+    logger.info(f"Запись успешно добавлена.")
+    return new_user
        
