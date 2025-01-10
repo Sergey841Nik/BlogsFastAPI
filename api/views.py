@@ -30,13 +30,13 @@ logger = getLogger(__name__)
 @router.post("/add_post/", summary="Добавление нового блога с тегами")
 async def add_blog(
     add_data: BlogCreateSchemaBase,
-    user_data: dict = Depends(get_current_user),
+    user_data: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.session_dependency),
 ):
     logger.info("Информация о юзере: %s" % user_data)
 
     blog_dict = add_data.model_dump()
-    blog_dict["author"] = int(user_data["sub"])
+    blog_dict["author"] = int(user_data.id)
     tags = blog_dict.pop("tags", [])
 
     try:
@@ -72,9 +72,9 @@ async def add_blog(
 async def get_blog_info(
     blog_id: int,
     session: AsyncSession = Depends(db_helper.session_dependency),
-    user_data: dict | None = Depends(get_current_user_optional),
+    user_data: User = Depends(get_current_user_optional),
 ):
-    author_id = user_data["sub"] if user_data else None
+    author_id = user_data.id if user_data else None
     return await get_full_blog_info(
         session=session, blog_id=blog_id, author_id=author_id
     )
@@ -85,5 +85,5 @@ async def get_blog_endpoint(
     blog_id: int, 
     blog_info: BlogFullResponse | BlogNotFind = Depends(get_blog_info)
 ) -> BlogFullResponse | BlogNotFind:
-    logger.info("Blog_info %s" % blog_info.tags[0].name)
+    logger.info("Blog_info %s" % blog_info)
     return blog_info

@@ -39,7 +39,7 @@ def decoded_jwt(
         token: str | bytes,
         public_key: str = settings.auth_jwt.public_key_path.read_text(),
         algorithm: str = settings.auth_jwt.algorithms,
-):
+) -> dict[str, str]:
     logger.info("token: %s" % token)
     
     decoded = jwt.decode(token, public_key, algorithms=[algorithm])

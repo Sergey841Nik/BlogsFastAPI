@@ -43,12 +43,12 @@ class BlogFullResponse(BaseModelConfig):
     # Используем вычисляемые поля для преобразования данных о пользователе
     @computed_field
     @property
-    def author_id(self) -> int:
+    def author_id(self) -> int | None:
         return self.user.id if self.user else None
 
     @computed_field
     @property
-    def author_name(self) -> str:
+    def author_name(self) -> str | None:
         if self.user:
             return f"{self.user.first_name} {self.user.last_name}"
         return None

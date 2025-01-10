@@ -111,8 +111,9 @@ async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int
 
     # Выполняем запрос
     result = await session.execute(query)
+
     blog = result.scalar_one_or_none()
-    
+   
     logger.info("Blog %s" % blog)
 
     if not blog:
@@ -120,11 +121,11 @@ async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int
             'message': f"Блог с ID {blog_id} не найден или у вас нет прав на его просмотр.",
             'status': 'error'
         }
-
+    
     if blog.status == 'draft' and (author_id != blog.author):
         return {
             'message': "Этот блог находится в статусе черновика, и доступ к нему имеют только авторы.",
             'status': 'error'
         }
-
+    
     return blog

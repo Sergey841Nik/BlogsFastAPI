@@ -73,14 +73,14 @@ class RoleModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# class UserInfo(UserBase):
-#     id: int = Field(description="Идентификатор пользователя")
-#     role: RoleModel = Field(exclude=True)
+class UserInfo(UserBase):
+    id: int = Field(description="Идентификатор пользователя")
+    role: RoleModel = Field(exclude=True)
 
-#     @computed_field
-#     def role_name(self) -> str:
-#         return self.role.name
+    @computed_field
+    def role_name(self) -> str:
+        return self.role.name
 
-#     @computed_field
-#     def role_id(self) -> int:
-#         return self.role.id
+    @computed_field
+    def role_id(self) -> int:
+        return self.role.id

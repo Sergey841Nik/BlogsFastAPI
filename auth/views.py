@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from .crud import add_users, find_one_or_none_users
 from .dependencies import get_current_user
 from .auth_jwt import validate_auth_user, create_access_token
-from .schemes import UserRegister, EmailModel, UserAddDB, UserAuth
+from .schemes import UserRegister, EmailModel, UserAddDB, UserAuth, UserInfo
 from core.models.db_helper import db_helper
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
@@ -51,5 +51,5 @@ async def logout_user(response: Response):
 
 
 @router.get("/me/")
-async def get_me(user_data = Depends(get_current_user)) -> dict:
-    return user_data
+async def get_me(user_data = Depends(get_current_user)) -> UserInfo:
+    return UserInfo.model_validate(user_data)

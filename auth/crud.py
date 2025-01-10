@@ -3,11 +3,28 @@ from logging import getLogger
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 from core.models.base import User
 
 
 logger = getLogger(__name__)
+
+async def find_one_or_none_by_id(user_id: int, session: AsyncSession):
+    # Найти запись по ID
+    logger.info(f"Поиск {User.__name__} с ID: {user_id}")
+    try:
+        query = select(User).filter_by(id=user_id)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
+        if user:
+            logger.info(f"Запись с ID {user_id} найдена.")
+        else:
+            logger.info(f"Запись с ID {user_id} не найдена.")
+        return user
+    except SQLAlchemyError as e:
+        logger.error(f"Ошибка при поиске записи с ID {user_id}: {e}")
+        raise
 
 
 async def find_one_or_none_users(session: AsyncSession, filters: BaseModel):
