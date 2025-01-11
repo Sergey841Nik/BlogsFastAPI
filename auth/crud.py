@@ -1,11 +1,11 @@
 from logging import getLogger
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
-from core.models.base import User
+from core.models.base import User, Role
 
 
 logger = getLogger(__name__)
@@ -43,6 +43,23 @@ async def find_one_or_none_users(session: AsyncSession, filters: BaseModel):
         logger.info("Запись не найдена по фильтрам: %s" % filter_dict)
     return user
 
+async def get_all_users(session: AsyncSession, filters: BaseModel | None):
+    if filters:
+        filter_dict = filters.model_dump(exclude_unset=True)
+    else:
+        filter_dict = {}
+
+    logger.info("Поиск одной записи по фильтрам: %s" % filter_dict)
+
+    query = select(User).filter_by(**filter_dict)
+    result = await session.execute(query)
+    users = result.scalars().all()
+    if users:
+        logger.info("Запись найдена по фильтрам: %s" % filter_dict)
+    else:
+        logger.info("Запись не найдена по фильтрам: %s" % filter_dict)
+    return users
+
 
 async def add_users(session: AsyncSession, values: BaseModel):
     # Добавить одну запись
@@ -56,4 +73,29 @@ async def add_users(session: AsyncSession, values: BaseModel):
     await session.commit()
     logger.info(f"Запись успешно добавлена.")
     return new_user
-       
+
+async def change_user_role(session: AsyncSession, values: BaseModel):
+    values_dict = values.model_dump(exclude_unset=True)
+
+    logger.info("Изменение роли с параметрами: %s" % values_dict)
+
+    stmt = (
+            update(User)
+            .where(User.email == values_dict["email"])
+            .values(role_id=values_dict["role_id"])
+            )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def add_new_role(session: AsyncSession, values: BaseModel):
+    values_dict = values.model_dump(exclude_unset=True)
+
+    logger.info("Добавление роль с параметрами: %s" % values_dict)
+
+    new_role = Role(**values_dict)
+    session.add(new_role)
+
+    await session.commit()
+    logger.info(f"Роль успешно добавлена.")
+    return new_role

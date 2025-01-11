@@ -3,10 +3,10 @@ from logging import getLogger
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from .crud import add_users, find_one_or_none_users
-from .dependencies import get_current_user
+from .crud import add_users, find_one_or_none_users, get_all_users, add_new_role, change_user_role
+from .dependencies import get_current_user, get_current_admin
 from .auth_jwt import validate_auth_user, create_access_token
-from .schemes import UserRegister, EmailModel, UserAddDB, UserAuth, UserInfo
+from .schemes import UserRegister, EmailModel, UserAddDB, UserAuth, UserInfo, RoleAddDB, ChangeUserRole
 from core.models.db_helper import db_helper
 
 router = APIRouter(prefix='/auth', tags=['Auth'])
@@ -43,6 +43,31 @@ async def auth_user(
     response.set_cookie(key='access_token', value=access_token, httponly=True)
     return {'ok': True, 'access_token': access_token, 'message': 'Авторизация успешна!'}
 
+@router.post("/add_role/")
+async def add_role(
+    role: RoleAddDB,
+    session: AsyncSession = Depends(db_helper.session_dependency),
+    user_data = Depends(get_current_admin),
+):
+    role_dict = role.model_dump()
+    await add_new_role(session=session, values=RoleAddDB(**role_dict))
+    return {"message": "Новая роль успешно добавлена"}
+
+@router.post("/change_role/")
+async def change_role(
+    user_role: ChangeUserRole,
+    session: AsyncSession = Depends(db_helper.session_dependency),
+    user_data = Depends(get_current_admin),
+):
+    find_user = await find_one_or_none_users(session=session, filters=EmailModel(email=user_role.email))
+    if not find_user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail='Пользователь отсутствует')
+    
+    user_role_dict = user_role.model_dump()
+
+    await change_user_role(session=session, values=ChangeUserRole(**user_role_dict))
+    return {"message": "Роль успешно изменена"}
 
 @router.post("/logout/")
 async def logout_user(response: Response):
@@ -53,3 +78,10 @@ async def logout_user(response: Response):
 @router.get("/me/")
 async def get_me(user_data = Depends(get_current_user)) -> UserInfo:
     return UserInfo.model_validate(user_data)
+
+@router.get("/all_users/")
+async def all_users(
+    session: AsyncSession = Depends(db_helper.session_dependency),
+    user_data = Depends(get_current_admin),
+) -> list[UserInfo]:
+    return await get_all_users(session=session, filters=None) # type: ignore

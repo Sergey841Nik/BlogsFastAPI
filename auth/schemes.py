@@ -66,11 +66,17 @@ class UserAuth(EmailModel):
         min_length=5, max_length=50, description="Пароль, от 5 до 50 знаков"
     )
 
+class ChangeUserRole(EmailModel):
+    role_id: int = Field(description="Идентификатор роли")
+
 
 class RoleModel(BaseModel):
     id: int = Field(description="Идентификатор роли")
     name: str = Field(description="Название роли")
     model_config = ConfigDict(from_attributes=True)
+
+class RoleAddDB(BaseModel):
+    name: str = Field(description="Название роли")
 
 
 class UserInfo(UserBase):
