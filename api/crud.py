@@ -10,17 +10,18 @@ from core.models.base import Blog, Tag, BlogTag
 
 logger = getLogger(__name__)
 
+
 async def add_tags_to_bd(session: AsyncSession, tag_names: list[str]) -> list[int]:
     """
-   Метод для добавления тегов в базу данных.
-   Принимает список строк (тегов), проверяет, существуют ли они в базе данных,
-   добавляет новые и возвращает список ID тегов.
-   Args:
-       session (AsyncSession): Сессия базы данных.
-       tag_names (list[str]): Список тегов в нижнем регистре.
-   Returns:
-       list[int]: Список ID тегов.
-   """
+    Метод для добавления тегов в базу данных.
+    Принимает список строк (тегов), проверяет, существуют ли они в базе данных,
+    добавляет новые и возвращает список ID тегов.
+    Args:
+        session (AsyncSession): Сессия базы данных.
+        tag_names (list[str]): Список тегов в нижнем регистре.
+    Returns:
+        list[int]: Список ID тегов.
+    """
     tag_ids = []
     for tag_name in tag_names:
         tag_name = tag_name.lower()  # Приводим тег к нижнему регистру
@@ -47,6 +48,7 @@ async def add_tags_to_bd(session: AsyncSession, tag_names: list[str]) -> list[in
 
     return tag_ids
 
+
 async def add_blog_to_bd(session: AsyncSession, values: BaseModel):
     # Добавить одну запись
     values_dict = values.model_dump(exclude_unset=True)
@@ -60,20 +62,23 @@ async def add_blog_to_bd(session: AsyncSession, values: BaseModel):
     logger.info(f"Запись успешно добавлена.")
     return new_blogs
 
-async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict]) -> None:
+
+async def add_blog_tags_to_bd(
+    session: AsyncSession, blog_tag_pairs: list[dict]
+) -> None:
     """
-   Функция добавляет связки блогов и тегов в базу данных.
-   Args:
-       session (AsyncSession): Объект сессии базы данных.
-       blog_tag_pairs (list[dict]): Список словарей, где каждый словарь содержит пару blog_id и tag_id.
-   Returns:
-       None
-   """
+    Функция добавляет связки блогов и тегов в базу данных.
+    Args:
+        session (AsyncSession): Объект сессии базы данных.
+        blog_tag_pairs (list[dict]): Список словарей, где каждый словарь содержит пару blog_id и tag_id.
+    Returns:
+        None
+    """
     # Сначала создаем все объекты BlogTag
     blog_tag_instances = []
     for pair in blog_tag_pairs:
-        blog_id = pair.get('blog_id')
-        tag_id = pair.get('tag_id')
+        blog_id = pair.get("blog_id")
+        tag_id = pair.get("tag_id")
         if blog_id and tag_id:
             # Создаем объект BlogTag
             blog_tag = BlogTag(blog_id=blog_id, tag_id=tag_id)
@@ -85,7 +90,9 @@ async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict])
         session.add_all(blog_tag_instances)  # Добавляем все объекты за один раз
         try:
             await session.flush()  # Применяем изменения и сохраняем записи в базе данных
-            logger.info("%s связок блогов и тегов успешно добавлено." % len(blog_tag_instances))
+            logger.info(
+                "%s связок блогов и тегов успешно добавлено." % len(blog_tag_instances)
+            )
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error("Ошибка при добавлении связок блогов и тегов: %s" % e)
@@ -94,7 +101,9 @@ async def add_blog_tags_to_bd(session: AsyncSession, blog_tag_pairs: list[dict])
         logger.warning("Нет валидных данных для добавления в таблицу blog_tags.")
 
 
-async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int | None = None):
+async def get_full_blog_info(
+    session: AsyncSession, blog_id: int, author_id: int | None = None
+):
     """
     Метод для получения полной информации о блоге, включая данные об авторе и тегах.
     Для опубликованных блогов доступ к информации открыт всем пользователям.
@@ -104,7 +113,7 @@ async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int
         select(Blog)
         .options(
             joinedload(Blog.user),  # Подгружаем данные о пользователе (авторе)
-            selectinload(Blog.tags)  # Подгружаем связанные теги
+            selectinload(Blog.tags),  # Подгружаем связанные теги
         )
         .filter_by(id=blog_id)
     )
@@ -113,19 +122,84 @@ async def get_full_blog_info(session: AsyncSession, blog_id: int, author_id: int
     result = await session.execute(query)
 
     blog = result.scalar_one_or_none()
-   
+
     logger.info("Blog %s" % blog)
 
     if not blog:
         return {
-            'message': f"Блог с ID {blog_id} не найден или у вас нет прав на его просмотр.",
-            'status': 'error'
+            "message": f"Блог с ID {blog_id} не найден или у вас нет прав на его просмотр.",
+            "status": "error",
         }
-    
-    if blog.status == 'draft' and (author_id != blog.author):
+
+    if blog.status == "draft" and (author_id != blog.author):
         return {
-            'message': "Этот блог находится в статусе черновика, и доступ к нему имеют только авторы.",
-            'status': 'error'
+            "message": "Этот блог находится в статусе черновика, и доступ к нему имеют только авторы.",
+            "status": "error",
         }
-    
+
     return blog
+
+
+async def delete_blog(
+    id_blog: int,
+    author_id: int,
+    session: AsyncSession,
+):
+    query = select(Blog).filter_by(id=id_blog)
+    result = await session.execute(query)
+    blog = result.scalar_one_or_none()
+
+    if not blog:
+        return {"message": f"Блог с ID {id_blog} не найден.", "status": "error"}
+    if blog.author != author_id:
+        return {"message": "У вас нет прав на удаление этого блога.", "status": "error"}
+
+    await session.delete(blog)
+    await session.flush()
+
+    return {"message": f"Блог с ID {id_blog} успешно удален.", "status": "success"}
+
+
+async def change_blog_status(
+    blog_id: int,
+    new_status: str,
+    author_id: int,
+    session: AsyncSession,
+) -> dict:
+
+    if new_status not in ["draft", "published"]:
+        return {
+            "message": "Недопустимый статус. Используйте 'draft' или 'published'.",
+            "status": "error",
+        }
+    try:
+        query = select(Blog).filter_by(id=blog_id)
+        result = await session.execute(query)
+        blog = result.scalar_one_or_none()
+
+        if not blog:
+            return {"message": f"Блог с ID {blog_id} не найден.", "status": "error"}
+        if blog.author != author_id:
+            return {
+                "message": "У вас нет прав на изменение статуса этого блога.",
+                "status": "error",
+            }
+        if blog.status == new_status:
+            return {
+                "message": f"Статус блога с ID {blog_id} уже {new_status}.",
+                "status": "error",
+            }
+
+        blog.status = new_status
+        await session.flush()
+        return {
+            "message": f"Статус блога с ID {blog_id} успешно изменен на {new_status}.",
+            "status": "success",
+        }
+
+    except SQLAlchemyError as e:
+        await session.rollback()
+        return {
+            "message": f"Произошла ошибка при изменении статуса блога: {str(e)}",
+            "status": "error",
+        }

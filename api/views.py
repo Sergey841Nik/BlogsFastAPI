@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi.responses import JSONResponse
 
 from api.dependencies import get_current_user_optional
-from auth.dependencies import get_current_user
+
 from core.models.base import User
 from core.models.db_helper import db_helper
 from .schemes import (
@@ -20,6 +20,8 @@ from .crud import (
     add_tags_to_bd,
     add_blog_tags_to_bd,
     get_full_blog_info,
+    delete_blog,
+    change_blog_status,
 )
 
 router = APIRouter(prefix="/api", tags=["API"])
@@ -30,7 +32,7 @@ logger = getLogger(__name__)
 @router.post("/add_post/", summary="Добавление нового блога с тегами")
 async def add_blog(
     add_data: BlogCreateSchemaBase,
-    user_data: User = Depends(get_current_user),
+    user_data: User = Depends(get_current_user_optional),
     session: AsyncSession = Depends(db_helper.session_dependency),
 ):
     logger.info("Информация о юзере: %s" % user_data)
@@ -87,3 +89,30 @@ async def get_blog_endpoint(
 ) -> BlogFullResponse | BlogNotFind:
     logger.info("Blog_info %s" % blog_info)
     return blog_info
+
+@router.delete("/delete_blog/{blog_id}", summary="Удалить блог")
+async def delete_blog_endpoint(
+    blog_id: int,
+    author: User = Depends(get_current_user_optional),
+    session: AsyncSession = Depends(db_helper.session_dependency),
+):
+    result = await delete_blog(blog_id, author.id, session)
+    if result['status'] == 'error':
+        raise HTTPException(status_code=400, detail=result['message'])
+    await session.commit()
+    return result
+
+@router.put("/change_blog_status/{blog_id}", summary="Обновить блог")
+async def change_blog_status_endpoint(
+    blog_id: int,
+    new_status: str,
+    author: User = Depends(get_current_user_optional),
+    session: AsyncSession = Depends(db_helper.session_dependency),
+):
+    
+    result = await change_blog_status(blog_id, new_status, author.id, session)
+    if result['status'] == 'error':
+        raise HTTPException(status_code=400, detail=result['message'])
+    await session.commit()
+    return result
+    
