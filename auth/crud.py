@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -78,7 +78,10 @@ async def change_user_role(session: AsyncSession, values: BaseModel):
     values_dict = values.model_dump(exclude_unset=True)
 
     logger.info("Изменение роли с параметрами: %s" % values_dict)
-
+    # stmt = text("""
+    #             UPDATE users SET role_id = :role_id WHERE email = :email
+    #         """)
+    # stmt = stmt.bindparams(role_id=values_dict["role_id"], email=values_dict["email"])
     stmt = (
             update(User)
             .where(User.email == values_dict["email"])
@@ -99,3 +102,25 @@ async def add_new_role(session: AsyncSession, values: BaseModel):
     await session.commit()
     logger.info(f"Роль успешно добавлена.")
     return new_role
+
+async def delete_role(
+        role_id: int,
+        session: AsyncSession,
+):
+    query = select(Role).filter_by(id=role_id)
+    result = await session.execute(query)
+    role = result.scalar_one_or_none()
+    
+    if not role:
+        return {
+            'message': f"Роль с ID {role_id} не найдена.",
+            'status': 'error'
+        }
+    
+    await session.delete(role)
+    await session.flush()
+
+    return {
+            'message': f"Роль с ID {role_id} успешно удален.",
+            'status': 'success'
+        }

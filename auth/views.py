@@ -3,7 +3,7 @@ from logging import getLogger
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from .crud import add_users, find_one_or_none_users, get_all_users, add_new_role, change_user_role
+from .crud import add_users, find_one_or_none_users, get_all_users, add_new_role, change_user_role, delete_role
 from .dependencies import get_current_user, get_current_admin
 from .auth_jwt import validate_auth_user, create_access_token
 from .schemes import UserRegister, EmailModel, UserAddDB, UserAuth, UserInfo, RoleAddDB, ChangeUserRole
@@ -53,7 +53,7 @@ async def add_role(
     await add_new_role(session=session, values=RoleAddDB(**role_dict))
     return {"message": "Новая роль успешно добавлена"}
 
-@router.post("/change_role/")
+@router.put("/change_role/")
 async def change_role(
     user_role: ChangeUserRole,
     session: AsyncSession = Depends(db_helper.session_dependency),
@@ -68,6 +68,18 @@ async def change_role(
 
     await change_user_role(session=session, values=ChangeUserRole(**user_role_dict))
     return {"message": "Роль успешно изменена"}
+
+@router.delete("/delete_blog/{role_id}", summary="Удалить роль")
+async def delete_role_endpoint(
+    role_id: int,
+    session: AsyncSession = Depends(db_helper.session_dependency),
+    user_data = Depends(get_current_admin),
+):
+    result = await delete_role(role_id, session)
+    if result['status'] == 'error':
+        raise HTTPException(status_code=400, detail=result['message'])
+    await session.commit()
+    return result
 
 @router.post("/logout/")
 async def logout_user(response: Response):
