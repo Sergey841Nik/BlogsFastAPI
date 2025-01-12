@@ -1,12 +1,13 @@
 from logging import getLogger
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload, joinedload
 from pydantic import BaseModel
 
 from core.models.base import Blog, Tag, BlogTag
+from .schemes import BlogFullResponse
 
 logger = getLogger(__name__)
 
@@ -166,6 +167,18 @@ async def change_blog_status(
     author_id: int,
     session: AsyncSession,
 ) -> dict:
+    """
+    Метод для изменения статуса блога.
+
+    Args:
+        blog_id (int): ID блога.
+        new_status (str): Новый статус блога. Должен быть 'draft' или 'published'.
+        author_id (int): ID автора блога.
+        session (AsyncSession): Сессия базы данных.
+
+    Returns:
+        dict: Словарь с информацией о результате операции.
+   """
 
     if new_status not in ["draft", "published"]:
         return {
@@ -203,3 +216,79 @@ async def change_blog_status(
             "message": f"Произошла ошибка при изменении статуса блога: {str(e)}",
             "status": "error",
         }
+    
+    
+async def get_blog_list(
+        session: AsyncSession, 
+        author_id: int | None = None, 
+        tag: str | None = None,
+        page: int = 1, 
+        page_size: int = 10
+):
+    
+    # Ограничение параметров
+    page_size = max(3, min(page_size, 100))
+    page = max(1, page)
+
+    # Начальная сборка базового запроса
+    base_query = select(Blog).options(
+        joinedload(Blog.user),
+        selectinload(Blog.tags)
+    ).filter_by(status='published')
+
+    # Фильтрация по автору
+    if author_id is not None:
+        base_query = base_query.filter_by(author=author_id)
+
+    # Фильтрация по тегу
+    if tag:
+        base_query = base_query.join(Blog.tags).filter(Blog.tags.any(Tag.name.ilike(f"%{tag.lower()}%")))
+
+    # Подсчет общего количества записей
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total_result = await session.scalar(count_query)
+
+    # Если записей нет, возвращаем пустой результат
+    if not total_result:
+        return {
+            "page": page,
+            "total_page": 0,
+            "total_result": 0,
+            "blogs": []
+        }
+
+    # Расчет количества страниц
+    total_page = (total_result + page_size - 1) // page_size
+
+    # Применение пагинации
+    offset = (page - 1) * page_size
+    paginated_query = base_query.offset(offset).limit(page_size)
+
+    # Выполнение запроса и получение результатов
+    result = await session.execute(paginated_query)
+    blogs = result.scalars().all()
+
+    # Удаление дубликатов блогов по их ID
+    unique_blogs = []
+    seen_ids = set()
+    for blog in blogs:
+        if blog.id not in seen_ids:
+            unique_blogs.append(BlogFullResponse.model_validate(blog))
+            seen_ids.add(blog.id)
+
+    # Логирование
+    filters = []
+    if author_id is not None:
+        filters.append(f"author_id={author_id}")
+    if tag:
+        filters.append(f"tag={tag}")
+    filter_str = " & ".join(filters) if filters else "no filters"
+
+    logger.info(f"Page {page} fetched with {len(blogs)} blogs, filters: {filter_str}")
+    # Формирование результата
+    return {
+        "page": page,
+        "total_page": total_page,
+        "total_result": total_result,
+        "blogs": unique_blogs
+    }

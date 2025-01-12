@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi.responses import JSONResponse
@@ -22,6 +22,7 @@ from .crud import (
     get_full_blog_info,
     delete_blog,
     change_blog_status,
+    get_blog_list,
 )
 
 router = APIRouter(prefix="/api", tags=["API"])
@@ -116,3 +117,18 @@ async def change_blog_status_endpoint(
     await session.commit()
     return result
     
+@router.get('/blogs/', summary="Получить все блоги в статусе 'publish'")
+async def get_blog_info(
+        author_id: int | None = None,
+        tag: str | None = None,
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        page_size: int = Query(10, ge=10, le=100, description="Записей на странице"),
+        session: AsyncSession = Depends(db_helper.session_dependency),
+):
+    try:
+        result = await get_blog_list(session=session, author_id=author_id, tag=tag, page=page,
+                                             page_size=page_size)
+        return result if result['blogs'] else BlogNotFind(message="Блоги не найдены", status='error')
+    except Exception as e:
+        logger.error(f"Ошибка при получении блогов: {e}")
+        return JSONResponse(status_code=500, content={"detail": "Ошибка сервера"})
