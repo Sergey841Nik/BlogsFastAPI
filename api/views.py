@@ -118,7 +118,7 @@ async def change_blog_status_endpoint(
     return result
     
 @router.get('/blogs/', summary="Получить все блоги в статусе 'publish'")
-async def get_blog_info(
+async def get_blogs_info(
         author_id: int | None = None,
         tag: str | None = None,
         page: int = Query(1, ge=1, description="Номер страницы"),

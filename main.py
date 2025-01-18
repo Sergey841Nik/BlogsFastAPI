@@ -9,6 +9,7 @@ from fastapi.responses import ORJSONResponse
 
 from auth.views import router as auth_router
 from api.views import router as api_router
+from pages.views import router as pages_router
 
 logger = getLogger()
 
@@ -21,6 +22,7 @@ basicConfig(level=INFO, format=FORMAT, handlers=[stream_handler])
 app = FastAPI(default_response_class=ORJSONResponse)
 app.include_router(auth_router)
 app.include_router(api_router)
+app.include_router(pages_router)
 
 app.add_middleware(
     CORSMiddleware,
