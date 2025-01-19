@@ -1,7 +1,7 @@
 
 from logging import getLogger
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Form
 
 from .crud import add_users, find_one_or_none_users, get_all_users, add_new_role, change_user_role, delete_role
 from .dependencies import get_current_user, get_current_admin
@@ -33,10 +33,10 @@ async def register_users(
 @router.post("/login/")
 async def auth_user(
     response: Response,
-    user: UserAuth,
+    user: UserAuth = Form(),
     session: AsyncSession = Depends(db_helper.session_dependency)
 ) -> dict:
-    
+                            
     check_user = await validate_auth_user(email=user.email, password=user.password, session=session)
 
     access_token = create_access_token(check_user)

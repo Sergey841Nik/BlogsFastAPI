@@ -1,4 +1,4 @@
-from pathlib import Path
+from logging import getLogger
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
@@ -12,7 +12,9 @@ import markdown2
 
 from core.models.base import User
 from core.models.db_helper import db_helper
+from auth.views import auth_user
 
+logger = getLogger(__name__)
 
 router = APIRouter(tags=['ФРОНТЕНД'])
 
@@ -33,6 +35,7 @@ async def get_blog_post(
         blog = BlogFullResponse.model_validate(blog_info).model_dump()
         # Преобразование Markdown в HTML
         blog['content'] = markdown2.markdown(blog['content'], extras=['fenced-code-blocks', 'tables'])
+        logger.info("blogs_id: %s" % blog_id)
         return templates.TemplateResponse(
             "post.html",
             {"request": request, "article": blog, "current_user_id": user_data.id if user_data else None}
@@ -55,6 +58,7 @@ async def get_blog_posts(
         page=page,
         page_size=page_size
     )
+    logger.info("blogs: %s" % blogs)
     return templates.TemplateResponse(
         "posts.html",
         {
@@ -66,3 +70,12 @@ async def get_blog_posts(
             }
         }
     )
+
+@router.get("/login/")
+async def login(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "title": "Авторизация"
+        })
