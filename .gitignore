@@ -4,3 +4,5 @@
 1.py
 .pylintrc
 quwery.sql
+__pycache__/
+.gitignor

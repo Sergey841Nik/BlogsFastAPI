@@ -56,8 +56,8 @@ async def add_role(
 @router.put("/change_role/")
 async def change_role(
     user_role: ChangeUserRole,
-    session: AsyncSession = Depends(db_helper.session_dependency),
     user_data = Depends(get_current_admin),
+    session: AsyncSession = Depends(db_helper.session_dependency),
 ):
     find_user = await find_one_or_none_users(session=session, filters=EmailModel(email=user_role.email))
     if not find_user:
@@ -65,7 +65,6 @@ async def change_role(
                             detail='Пользователь отсутствует')
     
     user_role_dict = user_role.model_dump()
-
     await change_user_role(session=session, values=ChangeUserRole(**user_role_dict))
     return {"message": "Роль успешно изменена"}
 
