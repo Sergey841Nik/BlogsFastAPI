@@ -6,3 +6,4 @@
 quwery.sql
 __pycache__/
 .gitignor
+venv
